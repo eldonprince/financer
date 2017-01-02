@@ -6,15 +6,15 @@ process <- function() {
   library(ggplot2)
   
   # Create master list
-  dlist <- vector("list", 29)
+  dlist <- vector("list", 25)
   names(dlist) <- c("dat_original", "budget_original", "lookup", "exclude", "dates", 
                     "dat", "budget", 
                     "cal_dat", "cal_plot",
                     "overall_dat", "overall_plot", "overall_value", 
-                    "food_dat", "food_value", "food_cat", "food_plot", 
-                    "shop_dat", "shop_value", "shop_cat", "shop_plot",
-                    "activity_dat", "activity_value", "activity_cat", "activity_plot",
-                    "other_dat", "other_value", "other_cat", "other_plot",
+                    "food_dat", "food_cat", "food_plot", 
+                    "shop_dat", "shop_cat", "shop_plot",
+                    "activity_dat", "activity_cat", "activity_plot",
+                    "other_dat", "other_cat", "other_plot",
                     "detail_dat")
   
   #Color theme
@@ -115,14 +115,10 @@ process <- function() {
     return(prep)
   }
   dlist[["food_dat"]] <- group_prep(dlist[["dat"]], dlist[["budget"]], "Food")
-  dlist[["food_value"]] <- dlist[["food_dat"]][["Budget"]] - dlist[["food_dat"]][["Amount"]]
   dlist[["shop_dat"]] <- group_prep(dlist[["dat"]], dlist[["budget"]], "Shopping")
-  dlist[["shop_value"]] <- dlist[["shop_dat"]][["Budget"]] - dlist[["shop_dat"]][["Amount"]]
   dlist[["activity_dat"]] <- group_prep(dlist[["dat"]], dlist[["budget"]], "Activity")
-  dlist[["activity_value"]] <- dlist[["activity_dat"]][["Budget"]] - dlist[["activity_dat"]][["Amount"]]
   dlist[["other_dat"]] <- group_prep(dlist[["dat"]], dlist[["budget"]], "Other")
-  dlist[["other_value"]] <- dlist[["other_dat"]][["Budget"]] - dlist[["other_dat"]][["Amount"]]
-  
+
   # Prepare data for categories
   category_prep <- function(dat, budget, group) {
     dat <- dat %>% filter(Group == group)
@@ -131,13 +127,15 @@ process <- function() {
     prep <- dat %>% group_by(Category) %>% summarise(Amount = sum(Amount))
     prep <- prep %>% left_join(budget, by = "Category") 
     prep$Status <- ifelse(prep$Amount > prep$Budget, "Bad", "Good")
+    prep$Amt_label <- prep$Amount
     prep_fill <- tibble(Category = budget$Category, 
                         Amount = budget$Budget,
                         Group = budget$Group,
                         Budget = budget$Budget,
                         Rollover = budget$Rollover,
                         Focus = budget$Focus,
-                        Status = "Nothing")
+                        Status = "Nothing", 
+                        Amt_label = 0)
     prep <- bind_rows(prep, prep_fill)
     prep <- prep %>% distinct(Category, .keep_all = TRUE)
     prep$Category <- factor(prep$Category, levels = plot_order$Category)
@@ -169,7 +167,8 @@ process <- function() {
     ggplot(dat_cat) +
       geom_bar(aes(Category, Amount, fill = Status), stat = "identity") +
       geom_errorbar(aes(Category, ymin = Budget, ymax = Budget)) +
-      geom_text(aes(Category, Budget, label = Budget), hjust = 1.1, size = 3) +
+      geom_text(aes(Category, Budget, label = Budget), hjust = -0.2, size = 3) +
+      geom_text(aes(Category, 0, label = round(Amt_label)), hjust = 1, size = 3) +
       coord_flip() +
       scale_fill_manual(values = col_plot) +
       theme_minimal() +
