@@ -70,10 +70,10 @@ process <- function() {
   overall_prep <- function(dat, budget) {
     amount <- unname(unlist(dat %>% summarise(Amount = sum(Amount))))
     status <- ifelse(amount > sum(budget$Budget), "Bad", "Good")
-    prep <- data.frame(Group = "Overall", 
-                       Amount = amount, 
-                       Budget = sum(budget$Budget), 
-                       Status = status)
+    prep <- tibble(Group = "Overall", 
+                   Amount = amount, 
+                   Budget = sum(budget$Budget), 
+                   Status = status)
     return(prep)
   }
   dlist[["overall_dat"]] <- overall_prep(dlist[["dat"]], dlist[["budget"]])
@@ -83,17 +83,24 @@ process <- function() {
   plot_col <- function(value) {ifelse(value < 0, bad_col, good_col)}
   
   # Plot overall status
-  dlist[["overall_plot"]] <- ggplot(dlist[["overall_dat"]]) +
-    geom_bar(aes(Group, Amount, fill = Status), stat = "identity") +
-    geom_errorbar(aes(Group, ymin = Budget, ymax = Budget)) +
-    coord_flip() +
-    scale_fill_manual(values = plot_col(dlist[["overall_value"]])) +
-    theme_minimal() +
-    theme(legend.position = "none",
-          axis.title = element_blank(),
-          axis.text = element_blank(),
-          panel.grid = element_blank(),
-          plot.margin = unit(c(0,0,0,0),"cm"))
+  over_plot <- function(dat, value) {
+    col_plot <- plot_col(value)
+    if (dat$Amount == 0) {
+      dat$Amount <- dat$Budget
+      col_plot <- neutral_col}
+    ggplot(dat) +
+      geom_bar(aes(Group, Amount, fill = Status), stat = "identity") +
+      geom_errorbar(aes(Group, ymin = Budget, ymax = Budget)) +
+      coord_flip() +
+      scale_fill_manual(values = col_plot) +
+      theme_minimal() +
+      theme(legend.position = "none",
+            axis.title = element_blank(),
+            axis.text = element_blank(),
+            panel.grid = element_blank(),
+            plot.margin = unit(c(0,0,0,0),"cm")) 
+  }
+  dlist[["overall_plot"]] <- over_plot(dlist[["overall_dat"]], dlist[["overall_value"]])
   
   # Prepare data for groups
   group_prep <- function(dat, budget, group) {
@@ -124,6 +131,15 @@ process <- function() {
     prep <- dat %>% group_by(Category) %>% summarise(Amount = sum(Amount))
     prep <- prep %>% left_join(budget, by = "Category") 
     prep$Status <- ifelse(prep$Amount > prep$Budget, "Bad", "Good")
+    prep_fill <- tibble(Category = budget$Category, 
+                        Amount = budget$Budget,
+                        Group = budget$Group,
+                        Budget = budget$Budget,
+                        Rollover = budget$Rollover,
+                        Focus = budget$Focus,
+                        Status = "Nothing")
+    prep <- bind_rows(prep, prep_fill)
+    prep <- prep %>% distinct(Category, .keep_all = TRUE)
     prep$Category <- factor(prep$Category, levels = plot_order$Category)
     return(prep)
   }
@@ -134,11 +150,28 @@ process <- function() {
   
   # Plot categories within groups
   cat_plot <- function(dat_cat) {
+    col_status <- c("Bad", "Good", "Nothing") %in% unique(dat_cat$Status)
+    col_status <- paste0(col_status, collapse = "")
+    col_identifier <- tibble(status = c("TRUETRUETRUE", "TRUEFALSETRUE", 
+                                        "FALSETRUETRUE", "TRUETRUEFALSE",
+                                        "FALSEFALSETRUE", "FALSETRUEFALSE",
+                                        "TRUEFALSEFALSE"),
+                             color = list(c(bad_col, good_col, neutral_col), 
+                                          c(bad_col, neutral_col),
+                                          c(good_col, neutral_col),
+                                          c(bad_col, good_col),
+                                          c(neutral_col),
+                                          c(good_col),
+                                          c(bad_col)))
+    col_plot <- col_identifier %>% filter(status == col_status) %>% select(color)
+    col_plot <- unname(unlist(col_plot))
+  
     ggplot(dat_cat) +
       geom_bar(aes(Category, Amount, fill = Status), stat = "identity") +
       geom_errorbar(aes(Category, ymin = Budget, ymax = Budget)) +
+      geom_text(aes(Category, Budget, label = Budget), hjust = 1.1, size = 3) +
       coord_flip() +
-      scale_fill_manual(values = c(bad_col, good_col)) +
+      scale_fill_manual(values = col_plot) +
       theme_minimal() +
       theme(legend.position = "none") +
       theme(axis.title = element_blank(), 
@@ -153,7 +186,7 @@ process <- function() {
   
   dlist[["detail_dat"]] <- dat %>% arrange(desc(Amount)) %>% 
     select(Group, Category, Amount, Description)
-
+  
   return(dlist)
 }
 dlist <- process()

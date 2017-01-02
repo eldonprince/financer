@@ -66,12 +66,15 @@ report <- function(dlist) {
   fdata <- dlist$detail_dat %>% filter(Group == "Food") %>% top_n(10, Amount) %>% select(-Group) 
   fdata$Category <- factor(fdata$Category, levels = fsort$Category)
   fdata <- fdata %>% arrange(Category)
+  if (length(fdata) != 3) {fdata <- tibble(Category = "None", Amount = 0, Description = "None")}
   ftable <- FlexTable(fdata,
-                      header.cell.props = cellProperties(border.left.style = "none",
+                      header.cell.props = cellProperties(border.top.style = "none",
+                                                         border.left.style = "none",
                                                          border.right.style = "none"),
                       body.cell.props = cellProperties(border.style = "none"),
                       header.text.props = textProperties(font.size = 8, font.family = "Calibri"),
                       body.text.props = textProperties(font.size = 8, font.family = "Calibri"))
+  ftable <- setFlexTableWidths(ftable, c(0.8, 0.5, 0.8))
   doc <- addFlexTable(doc, ftable,
                       offx = 0.2, offy = 3.25, width = 2.1, height = 3)
   
@@ -79,12 +82,15 @@ report <- function(dlist) {
   fdata <- dlist$detail_dat %>% filter(Group == "Shopping") %>% top_n(10, Amount) %>% select(-Group) 
   fdata$Category <- factor(fdata$Category, levels = fsort$Category)
   fdata <- fdata %>% arrange(Category)
+  if (length(fdata) != 3) {fdata <- tibble(Category = "None", Amount = 0, Description = "None")}
   ftable <- FlexTable(fdata,
-                      header.cell.props = cellProperties(border.left.style = "none",
+                      header.cell.props = cellProperties(border.top.style = "none",
+                                                         border.left.style = "none",
                                                          border.right.style = "none"),
                       body.cell.props = cellProperties(border.style = "none"),
                       header.text.props = textProperties(font.size = 8, font.family = "Calibri"),
                       body.text.props = textProperties(font.size = 8, font.family = "Calibri"))
+  ftable <- setFlexTableWidths(ftable, c(0.8, 0.5, 0.8))
   doc <- addFlexTable(doc, ftable,
                       offx = 2.7, offy = 3.25, width = 2.1, height = 3)
   
@@ -92,12 +98,15 @@ report <- function(dlist) {
   fdata <- dlist$detail_dat %>% filter(Group == "Activity") %>% top_n(10, Amount) %>% select(-Group) 
   fdata$Category <- factor(fdata$Category, levels = fsort$Category)
   fdata <- fdata %>% arrange(Category)
+  if (length(fdata) != 3) {fdata <- tibble(Category = "None", Amount = 0, Description = "None")}
   ftable <- FlexTable(fdata,
-                      header.cell.props = cellProperties(border.left.style = "none",
+                      header.cell.props = cellProperties(border.top.style = "none",
+                                                         border.left.style = "none",
                                                          border.right.style = "none"),
                       body.cell.props = cellProperties(border.style = "none"),
                       header.text.props = textProperties(font.size = 8, font.family = "Calibri"),
                       body.text.props = textProperties(font.size = 8, font.family = "Calibri"))
+  ftable <- setFlexTableWidths(ftable, c(0.8, 0.5, 0.8))
   doc <- addFlexTable(doc, ftable,
                       offx = 5.2, offy = 3.25, width = 2.1, height = 3)
   
@@ -105,12 +114,15 @@ report <- function(dlist) {
   fdata <- dlist$detail_dat %>% filter(Group == "Other") %>% top_n(10, Amount) %>% select(-Group) 
   fdata$Category <- factor(fdata$Category, levels = fsort$Category)
   fdata <- fdata %>% arrange(Category)
+  if (length(fdata) != 3) {fdata <- tibble(Category = "None", Amount = 0, Description = "None")}
   ftable <- FlexTable(fdata,
-                      header.cell.props = cellProperties(border.left.style = "none",
+                      header.cell.props = cellProperties(border.top.style = "none",
+                                                         border.left.style = "none",
                                                          border.right.style = "none"),
                       body.cell.props = cellProperties(border.style = "none"),
                       header.text.props = textProperties(font.size = 8, font.family = "Calibri"),
                       body.text.props = textProperties(font.size = 8, font.family = "Calibri"))
+  ftable <- setFlexTableWidths(ftable, c(0.8, 0.5, 0.8))
   doc <- addFlexTable(doc, ftable,
                       offx = 7.7, offy = 3.25, width = 2.1, height = 3)
   
