@@ -4,7 +4,6 @@ process <- function() {
   library(readxl)
   library(dplyr)
   library(ggplot2)
-  library(ReporteRs)
   
   # Create master list
   dlist <- vector("list", 29)
@@ -17,6 +16,11 @@ process <- function() {
                     "activity_dat", "activity_value", "activity_cat", "activity_plot",
                     "other_dat", "other_value", "other_cat", "other_plot",
                     "detail_dat")
+  
+  #Color theme
+  bad_col <- "#FFEC8B"
+  good_col <- "#A6D785"
+  neutral_col <- "#E8E8E8"
   
   # Read in transactions and budget
   dlist[["dat_original"]] <- read_csv("transactions.csv")
@@ -57,8 +61,8 @@ process <- function() {
   done_days <- as.numeric(dlist$dates$Week_Begin - dlist$dates$Month_Begin)
   dlist[["cal_dat"]] <- data.frame(total = c(1:num_days), done = c(rep(1, done_days), rep(0, num_days - done_days)))
   dlist[["cal_plot"]] <- ggplot(dlist[["cal_dat"]], aes(total, 1, fill = factor(done))) + 
-    geom_tile(color = "black") + 
-    scale_fill_manual(values = c("white", "#636363")) +
+    geom_tile(color = "#BEBEBE") + 
+    scale_fill_manual(values = c("white", neutral_col)) +
     theme_void() +
     theme(legend.position = "none")
   
@@ -76,7 +80,7 @@ process <- function() {
   dlist[["overall_value"]] <- dlist[["overall_dat"]][["Budget"]] - dlist[["overall_dat"]][["Amount"]]
   
   #Function to set color based on value
-  plot_col <- function(value) {ifelse(value < 0, "#e41a1c", "#4daf4a")}
+  plot_col <- function(value) {ifelse(value < 0, bad_col, good_col)}
   
   # Plot overall status
   dlist[["overall_plot"]] <- ggplot(dlist[["overall_dat"]]) +
@@ -85,9 +89,11 @@ process <- function() {
     coord_flip() +
     scale_fill_manual(values = plot_col(dlist[["overall_value"]])) +
     theme_minimal() +
-    theme(legend.position = "none") +
-    theme(axis.title = element_blank(),
-          axis.text.y = element_blank())
+    theme(legend.position = "none",
+          axis.title = element_blank(),
+          axis.text = element_blank(),
+          panel.grid = element_blank(),
+          plot.margin = unit(c(0,0,0,0),"cm"))
   
   # Prepare data for groups
   group_prep <- function(dat, budget, group) {
@@ -132,11 +138,13 @@ process <- function() {
       geom_bar(aes(Category, Amount, fill = Status), stat = "identity") +
       geom_errorbar(aes(Category, ymin = Budget, ymax = Budget)) +
       coord_flip() +
-      scale_fill_manual(values = c("#e41a1c", "#4daf4a")) +
+      scale_fill_manual(values = c(bad_col, good_col)) +
       theme_minimal() +
       theme(legend.position = "none") +
       theme(axis.title = element_blank(), 
-            axis.text.x = element_blank())
+            axis.text.x = element_blank(),
+            panel.grid = element_blank(),
+            plot.margin = unit(c(0,0,0,0),"cm"))
   }
   dlist[["food_plot"]] <- cat_plot(dlist[["food_cat"]])
   dlist[["shop_plot"]] <- cat_plot(dlist[["shop_cat"]])
@@ -144,8 +152,8 @@ process <- function() {
   dlist[["other_plot"]] <- cat_plot(dlist[["other_cat"]])
   
   dlist[["detail_dat"]] <- dat %>% arrange(desc(Amount)) %>% 
-    select(Category, Amount, Description, Date)
-  
+    select(Group, Category, Amount, Description)
+
   return(dlist)
 }
 dlist <- process()
