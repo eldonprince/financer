@@ -6,11 +6,12 @@ process <- function() {
   library(ggplot2)
   
   # Create master list
-  dlist <- vector("list", 25)
+  dlist <- vector("list", 29)
   names(dlist) <- c("dat_original", "budget_original", "lookup", "exclude", "dates", 
-                    "dat", "budget", 
+                    "dat", "budget", "rollover",  
                     "cal_dat", "cal_plot",
-                    "overall_dat", "overall_plot", "overall_value", 
+                    "overall_dat", "overall_plot", "overall_value",
+                    "rollover_dat", "rollover_plot", "rollover_value", 
                     "food_dat", "food_cat", "food_plot", 
                     "shop_dat", "shop_cat", "shop_plot",
                     "activity_dat", "activity_cat", "activity_plot",
@@ -44,8 +45,9 @@ process <- function() {
   dat <- dat %>% left_join(dlist[["budget"]], by = "Category")
   dat <- dat %>% filter(!Category %in% dlist[["exlude"]][["Category"]])
   dat <- dat %>% filter(Date >= as.Date(dlist[["dates"]][["Month_Begin"]]) & 
-                          Date < as.Date(dlist[["dates"]][["Week_Begin"]]))
-  dat <- dat %>% filter(Focus == "Y")
+                          Date <= as.Date(dlist[["dates"]][["Target_Day"]]))
+  dlist[["rollover"]] <- dat %>% filter(Group == "Rollover")
+  dat <- dat %>% filter(Focus == "Y" & Group != "Rollover")
   dlist[["dat"]] <- dat
   
   # Plot calendar
@@ -58,7 +60,7 @@ process <- function() {
                              format = "%d")))
   }
   num_days <- num_days_month(dlist[["dates"]][["Month_Begin"]])
-  done_days <- as.numeric(dlist$dates$Week_Begin - dlist$dates$Month_Begin)
+  done_days <- as.numeric(dlist$dates$Target_Day - dlist$dates$Month_Begin)
   dlist[["cal_dat"]] <- data.frame(total = c(1:num_days), done = c(rep(1, done_days), rep(0, num_days - done_days)))
   dlist[["cal_plot"]] <- ggplot(dlist[["cal_dat"]], aes(total, 1, fill = factor(done))) + 
     geom_tile(color = "#BEBEBE") + 
@@ -66,7 +68,7 @@ process <- function() {
     theme_void() +
     theme(legend.position = "none")
   
-  # Prepare data for plotting overall status
+  # Prepare data for plotting overall status and rollover status
   overall_prep <- function(dat, budget) {
     amount <- unname(unlist(dat %>% summarise(Amount = sum(Amount))))
     status <- ifelse(amount > sum(budget$Budget), "Bad", "Good")
@@ -78,7 +80,10 @@ process <- function() {
   }
   dlist[["overall_dat"]] <- overall_prep(dlist[["dat"]], dlist[["budget"]])
   dlist[["overall_value"]] <- dlist[["overall_dat"]][["Budget"]] - dlist[["overall_dat"]][["Amount"]]
-  
+
+  dlist[["rollover_dat"]] <- overall_prep(dlist[["rollover"]], dlist[["budget"]] %>% filter(Group == "Rollover"))
+  dlist[["rollover_value"]] <- dlist[["rollover_dat"]][["Budget"]] - dlist[["rollover_dat"]][["Amount"]]
+    
   #Function to set color based on value
   plot_col <- function(value) {ifelse(value < 0, bad_col, good_col)}
   
@@ -101,6 +106,7 @@ process <- function() {
             plot.margin = unit(c(0,0,0,0),"cm")) 
   }
   dlist[["overall_plot"]] <- over_plot(dlist[["overall_dat"]], dlist[["overall_value"]])
+  dlist[["rollover_plot"]] <- over_plot(dlist[["rollover_dat"]], dlist[["rollover_value"]])
   
   # Prepare data for groups
   group_prep <- function(dat, budget, group) {
@@ -132,7 +138,6 @@ process <- function() {
                         Amount = budget$Budget,
                         Group = budget$Group,
                         Budget = budget$Budget,
-                        Rollover = budget$Rollover,
                         Focus = budget$Focus,
                         Status = "Nothing", 
                         Amt_label = 0)

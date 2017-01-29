@@ -3,7 +3,7 @@ report <- function(dlist) {
   library(ReporteRs)
   
   doc <- pptx(title = "Finance", template = "template.pptx")
-  doc <- addSlide(doc, slide.layout = "Dashboard")
+  doc <- addSlide(doc, slide.layout = "Dashboard2")
   
   # Overall text and plots
   month_text <- pot(toupper(months(as.POSIXlt(dlist$dates$Month_Begin), abbreviate = FALSE)), 
@@ -11,15 +11,29 @@ report <- function(dlist) {
   doc <- addParagraph(doc, month_text, offx = 4.32, offy = 0.15, width = 1.5, height = 0.4, 
                       par.properties = parProperties(text.align = "center"))
   
+  # Budget text
   val_text <- ifelse(dlist$overall_value < 0, " over", " left")
-  overall_val <- pot(paste0("$", round(abs(dlist$overall_value), 2), val_text), 
+  overall_val <- pot(paste0("Budget: ", "$", round(abs(dlist$overall_value), 2), val_text), 
                      format = textProperties(font.size = 14, font.family = "Calibri"))
-  doc <- addParagraph(doc, overall_val, offx = 0.83, offy = 0.17, width = 1.5, height = 0.4, 
+  doc <- addParagraph(doc, overall_val, offx = 0.25, offy = 0.17, width = 2, height = 0.4, 
                       par.properties = parProperties(text.align = "right"))
   
+  # Rollover text
+  val_text <- ifelse(dlist$rollover_value < 0, " over", " left")
+  rollover_val <- pot(paste0("Rollover: ", "$", round(abs(dlist$rollover_value), 2), val_text), 
+                     format = textProperties(font.size = 14, font.family = "Calibri"))
+  doc <- addParagraph(doc, rollover_val, offx = 0.25, offy = 0.47, width = 2, height = 0.4, 
+                      par.properties = parProperties(text.align = "right"))
+  
+  # Overall plot
   doc <- addPlot(doc, fun = function() print(dlist$overall_plot), 
                  vector.graphic = TRUE,
                  offx = 2.1, offy = 0.24, width = 1.75, height = 0.35)
+  
+  # Rollover plot
+  doc <- addPlot(doc, fun = function() print(dlist$rollover_plot), 
+                 vector.graphic = TRUE,
+                 offx = 2.1, offy = 0.54, width = 1.75, height = 0.35)
   
   doc <- addPlot(doc, fun = function() print(dlist$cal_plot), 
                  vector.graphic = TRUE,
@@ -82,7 +96,7 @@ report <- function(dlist) {
                       c(7.7, 3.4, 2.1, 3))
     pos <- positions[[position]]
     fsort <- cat %>% arrange(desc(Budget))
-    fdata <- dat %>% filter(Group == group) %>% top_n(10, Amount) %>% select(-Group) 
+    fdata <- dat %>% filter(Group == group) %>% top_n(30, Amount) %>% select(-Group) 
     fdata$Category <- factor(fdata$Category, levels = fsort$Category)
     fdata <- fdata %>% arrange(Category)
     if (nrow(fdata) == 0) {fdata <- tibble(Category = "None", Amount = 0, Description = "None")}
